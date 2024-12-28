@@ -48,6 +48,7 @@ def get_diff(repo, base_branch, compare_branch):
         print(f"Error getting diff: {e}")
         return None
 
+
 def post_comment(pr, comment_body):
     try:
         pr.create_issue_comment(body=comment_body)
@@ -55,13 +56,16 @@ def post_comment(pr, comment_body):
     except Exception as e:
         print(f"Error posting comment: {e}")
 
+
 def escape_text(text):
     # Enclose spaces and underscores in braces
     escaped_text = text.replace(" ", r"\ ").replace("_", r"\_")
     return escaped_text
 
+
 def color_text(text, color):
     return f"$\\color{{{color}}}{{{escape_text(text)}}}$"
+
 
 def animated_rule(type="success",rule="",score=100,speed=3000):
     escaped_text = rule.replace(" ",r"+")
@@ -72,6 +76,7 @@ def animated_rule(type="success",rule="",score=100,speed=3000):
     if type == "warning":
         return f"[![{rule}](https://readme-typing-svg.demolab.com?font=Fira+Code&size=12&duration={speed}&pause=1500&color=FF5F15&repeat=true&random=false&width=550&height=18&lines=-+%E2%9D%8C+{escaped_text}+(score+{score}%2F100))](https://github.com/puntorigen/pr-rules)"
     return f"[![{rule}](https://readme-typing-svg.demolab.com?font=Fira+Code&size=12&duration={speed}&pause=1500&color=FF0000&repeat=true&random=false&width=550&height=18&lines=-+%E2%9D%8C+{escaped_text}+(score+{score}%2F100))](https://github.com/puntorigen/pr-rules)"
+
 
 def main():
     # test inputs source
@@ -141,18 +146,21 @@ def main():
             files_diff = diff
         ), rule.text)
 
+        if llm_response is None:
+            raise Exception("Failed to get LLM response")
+         
         print(f"LLM Crew Response received for rule: {rule.text}", llm_response)
 
         if llm_response.complies:
             #comment_content += f"- ✅ {color_text(rule, 'ForestGreen')} (score: {llm_response.score}/100)\n"
-            comment_content += animated_rule("success",rule.text,llm_response.score,3000+(processed_items_count*500))
+            comment_content += animated_rule("success", rule.text,llm_response.score,3000+(processed_items_count*500))
         else:
             #comment_content += f"- ❌ {color_text(rule, 'Red')} (score: {llm_response.score}/100)\n"
             if rule.type == 'mandatory':
-                comment_content += animated_rule("failure",rule.text,llm_response.score,3000+(processed_items_count*500))
+                comment_content += animated_rule("failure",rule.text, llm_response.score,3000+(processed_items_count*500))
                 comment_content += "\n- **Reason for failure:**\n"
             else:
-                comment_content += animated_rule("warning",rule.text,llm_response.score,3000+(processed_items_count*500))
+                comment_content += animated_rule("warning",rule.text, llm_response.score,3000+(processed_items_count*500))
                 comment_content += "\n- **Reason for warning:**\n"
             for reasoning in llm_response.affected_sections or []:
                 if reasoning.file:
@@ -170,14 +178,14 @@ def main():
                 #        comment_content += f"    - {fix}\n"
             # Stop processing further rules on failure, only if rule.type is mandatory
             if rule.type == 'mandatory':
-                break  
+                break
         processed_items_count += 1
 
     # Add remaining unchecked items
     remaining_items = checklist_items[processed_items_count+1:]
     comment_content += "\n"
     for rule in remaining_items:
-        comment_content += animated_rule("pending",rule.text,100,3000) + "\n"
+        comment_content += animated_rule("pending", rule.text,100,3000) + "\n"
         #comment_content += f"- [ ] {rule}\n" 
 
     # Post the comment on the PR

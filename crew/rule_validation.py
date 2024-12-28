@@ -4,13 +4,13 @@ from crew.experts import Experts, get_llm
 from crew.tasks import Tasks, PRSchema, RulesOutput
 import os
 
+
 def validate_rule(PR: PRSchema, rule: str):
     # Define the team
     expert = Experts()
     rule_validator = expert.rule_relevant_analyst()
     compliance_specialist = expert.compliance_specialist()
     specialized_experts = expert.specialized_experts()
-    review_agent = expert.review_agent() # for ollama
     feedback_agent = expert.feedback_agent()
 
     # Define the tasks
@@ -21,22 +21,18 @@ def validate_rule(PR: PRSchema, rule: str):
     test_crew = Crew(
         agents=[rule_validator],
         tasks=[is_rule_relevant],
-        #verbose=2
     )
     print("Starting Validation Crew")
     is_valid = test_crew.kickoff()
-    print("output from initial validation task",is_valid)
+    print("output from initial validation task", is_valid)
 
     if is_valid.is_relevant == False:
         print("Rule is not relevant to the PR context")
-        return RulesOutput(complies=True,affected_sections=None,score=100)
-        #return { "is_relevant": False } # Rule is not relevant to the PR
+        return RulesOutput(complies=True, affected_sections=None, score=100)
 
     print("Rule seems valid for PR context, proceeding with the rest of the tasks")
     # define the rest of the tasks
     check_compliance = my_tasks.check_complaince(compliance_specialist)
-    #verify_assessment = my_tasks.verify_assessment(review_agent, check_compliance)
-    #generate_feedback = my_tasks.generate_feedback(feedback_agent, verify_assessment)
     generate_feedback = my_tasks.generate_feedback(feedback_agent, check_compliance)
 
     # Define the final evaluation crew
@@ -48,24 +44,15 @@ def validate_rule(PR: PRSchema, rule: str):
         crew = Crew(
             agents=[ # include available specialiazied experts here as well
                 compliance_specialist, *specialized_experts["coding"], *specialized_experts["database"],
-                #review_agent, 
                 feedback_agent
             ], 
             tasks=[
-                check_compliance, 
-                #verify_assessment, 
+                check_compliance,
                 generate_feedback
             ],
-            #manager_llm=manager_llm,
-            #process=Process.hierarchical,
-            #verbose=1,
             memory=False,
         )
         return crew.kickoff()
-        #report = crew.kickoff()
-        #print("transforming report into pydantic model:\n",report)
-        #return output_to_pydantic(report, RulesOutput)
-    
     else:
         crew = Crew(
             agents=[ # include available specialiazied experts here as well
